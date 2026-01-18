@@ -19,3 +19,6 @@ A simple, aesthetic countdown timer built with HTML, CSS, and JavaScript. It fea
 
 ## License
 Free to use and modify for personal projects.
+
+
+might add current time feature soon
