@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Timer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        /* Glassmorphism Card */
+        .timer-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            text-align: center;
+            width: 320px;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        /* Input Group */
+        .input-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .input-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        input {
+            width: 60px;
+            height: 60px;
+            text-align: center;
+            font-size: 1.5rem;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            outline: none;
+        }
+
+        input::placeholder { color: rgba(255,255,255, 0.5); }
+        input:focus { background: rgba(255, 255, 255, 0.3); }
+
+        /* Remove arrows from number input */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        label {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        /* Timer Display (Hidden by default) */
+        .timer-display {
+            font-size: 3.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            display: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Buttons */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-start {
+            background: #fff;
+            color: #764ba2;
+        }
+
+        .btn-reset {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            display: none; /* Hidden initially */
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Animation for when time is up */
+        .time-up {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+            border-color: #ff6b6b;
+            background: rgba(255, 0, 0, 0.2);
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="timer-card" id="timerCard">
+        <h1>TIMER</h1>
+
+        <div class="input-group" id="inputGroup">
+            <div class="input-wrapper">
+                <input type="number" id="hours" placeholder="00" min="0" max="99">
+                <label>HRS</label>
+            </div>
+            <div class="input-wrapper">
+                <input type="number" id="minutes" placeholder="00" min="0" max="59">
+                <label>MIN</label>
+            </div>
+            <div class="input-wrapper">
+                <input type="number" id="seconds" placeholder="00" min="0" max="59">
+                <label>SEC</label>
+            </div>
+        </div>
+
+        <div class="timer-display" id="display">00:00:00</div>
+
+        <div class="controls">
+            <button class="btn-start" id="startBtn" onclick="toggleTimer()">Start</button>
+            <button class="btn-reset" id="resetBtn" onclick="resetTimer()">Reset</button>
+        </div>
+    </div>
+
+    <audio id="alarmSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <script>
+        let timerInterval;
+        let totalSeconds = 0;
+        let isRunning = false;
+
+        const hoursInput = document.getElementById('hours');
+        const minutesInput = document.getElementById('minutes');
+        const secondsInput = document.getElementById('seconds');
+        const display = document.getElementById('display');
+        const inputGroup = document.getElementById('inputGroup');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const card = document.getElementById('timerCard');
+        const alarm = document.getElementById('alarmSound');
+
+        function toggleTimer() {
+            if (!isRunning) {
+                startTimer();
+            } else {
+                pauseTimer();
+            }
+        }
+
+        function startTimer() {
+            if (totalSeconds === 0) {
+                const h = parseInt(hoursInput.value) || 0;
+                const m = parseInt(minutesInput.value) || 0;
+                const s = parseInt(secondsInput.value) || 0;
+                totalSeconds = h * 3600 + m * 60 + s;
+
+                if (totalSeconds <= 0) {
+                    alert("Please set a time first!");
+                    return;
+                }
+            }
+
+            isRunning = true;
+            inputGroup.style.display = 'none';
+            display.style.display = 'block';
+            resetBtn.style.display = 'block';
+            startBtn.innerText = 'Pause';
+            updateDisplay();
+
+            timerInterval = setInterval(() => {
+                if (totalSeconds > 0) {
+                    totalSeconds--;
+                    updateDisplay();
+                } else {
+                    timerFinished();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            startBtn.innerText = 'Resume';
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            totalSeconds = 0;
+            
+            // Stop Audio
+            alarm.pause();
+            alarm.currentTime = 0;
+
+            // Reset UI
+            card.classList.remove('time-up');
+            display.style.display = 'none';
+            inputGroup.style.display = 'flex';
+            resetBtn.style.display = 'none';
+            
+            // FIX: Restore the Start button
+            startBtn.style.display = 'block';
+            startBtn.innerText = 'Start';
+            
+            // Clear inputs
+            hoursInput.value = '';
+            minutesInput.value = '';
+            secondsInput.value = '';
+        }
+
+        function timerFinished() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            display.innerText = "TIME'S UP!";
+            
+            // Hide start button when done
+            startBtn.style.display = 'none';
+            
+            card.classList.add('time-up');
+            
+            alarm.play().catch(error => console.log("Audio play failed:", error));
+        }
+
+        function updateDisplay() {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+
+            display.innerText = `${pad(h)}:${pad(m)}:${pad(s)}`;
+        }
+
+        function pad(num) {
+            return num.toString().padStart(2, '0');
+        }
+    </script>
+</body>
+</html>
