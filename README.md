@@ -9,7 +9,7 @@ A simple, aesthetic countdown timer built with HTML, CSS, and JavaScript. It fea
 * **Modern UI:** Responsive design with a glassmorphism effect.
 
 ## How to Use
-1.  Download or save the `timer.html` file.
+1.  Download or save the `index.html` file.
 2.  Double-click the file to open it in your web browser (Chrome, Firefox, Safari, etc.).
 3.  Enter your desired time and click **Start**.
 
